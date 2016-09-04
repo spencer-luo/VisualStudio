@@ -1,108 +1,159 @@
-上一篇文章[带你玩转Visual Studio——带你管理多种释出版本](http://blog.csdn.net/luoweifu/article/details/48912241)让我们了解了Debug与Release的区别，并学会也如果管理 多个不同释出版本的配制项。在一个大型的项目中，往往不止一个工程，而会有多个工程相互关联，每个工程也都会有自己的释出版本，这就是这篇文章将要讲述的内容。
-***
-#一个Solution多个Project
-##多个工程简介
-在[带你玩转Visual Studio——带你新建一个工程](http://blog.csdn.net/luoweifu/article/details/48692267)一文中提到一个Solution(解决方案)可以有多个Project(工程)，那什么时候需要有多工程呢？ 多工程又有什么好处呢？
+#带你玩转Visual Studio2——调用约定__cdecl、__stdcall和__fastcall
 
-**应用场景：**当一个项目由多个不同的组件(模块)构成时，为每一个组件创建一个工程，所有的组件工程在同一个解决方案下。
-**优点：**结构清晰，可进行分模块开发，对复杂程序进行解耦。
+有一定C++开发经验的人一定对"\__cdecl、\__stdcall、__fastcall"肯定不陌生吧！但你真正理解了吗？是的，我曾在这采了无数个坑，栽了无数个跟头，终于忍无可忍要把它总结一下(虽然我已经有能力解决大部分这种问题了)!
 
-##创建一个多工程项目
-我们还是以Utils这个工程为例，在[带你发布自己的工程库](http://blog.csdn.net/luoweifu/article/details/48895765)一文及上一篇[带你管理多种释出版本](http://blog.csdn.net/luoweifu/article/details/48912241)中已经创建了一个Utils工程，并为它编译出了多个版本的库，但我们使用这个库的时候却是在另一个Solution下进行的，其实我们完全可以而且也应该把使用Utils库的工程与Utils工程放在一个解决方案下。
 
-1. **新建Project添加到已有Solution中**，File->New->Project... 打开新建工程对话框新建一个UsingUtils工程，注意在Solution这一栏中我们选择Add to solution。
-<center>![添加一个工程](http://img.blog.csdn.net/20151005180802552)
-添加一个工程</center>
+#什么是调用约定
+>函数的**调用约定**，顾名思义就是对函数调用的一个约束和规定(规范)，描述了函数参数是怎么传递和由谁清除堆栈的。它决定以下内容：(1)函数参数的压栈顺序，(2)由调用者还是被调用者把参数弹出栈，(3)以及产生函数修饰名的方法。
 
-2. **添加引用关联**，这时我们要使用这个Utils编译出来的库，配制也要简单一点了。右键UsingUtils工程->Properties->Common Properties->Framework and references，添加引用(依赖)的工程Utils。设置引用关联后，如果Utils工程发生改动或更新，在编译UsingUtils工程时就会重新编译Utils工程。
-<center>![添加引用关联](http://img.blog.csdn.net/20151005220228885)
-添加引用关联</center>
+我们知道函数由以下几部分构成:返回值类型 函数名(参数列表)，如:
+【code1】
 
-3. **设置头文件的路径**。
-<center>![设置头文件的路径](http://img.blog.csdn.net/20151005220611477)
-设置头文件的路径</center>
+	void function();
+	int add(int a, int b);
 
-4. **设置启动工程**，在有多个工程的Solution中要设置启动工程(也就是要第一个开始执行的工程)，不然你按F5运行时不知道从哪个工程开始执行。选择UsingUtils工程名右键鼠标->Set as Startup Project。然后就可以执行或调试UsingUtils工程了。
-***
+以上是大家所熟知的构成部分，其实函数的构成还有一部分，那就是调用约定。如下：
+【code2】
 
-#编译结果和目录管理
-在多个组件同时开发时，把相关的Project放在同一个Solution下会方便很多。但你有没有发现一个新的问题，如果一个Solution有很多的Project，每一个Project目录下都会有一个编译结果的目录，如下图这样你昏不昏？
-![编译结果目录](http://img.blog.csdn.net/20151005223002754)
-编译结果目录
+	void __cdecl function();
+	int __stdcall add(int a, int b);
 
-那如何管理这些目录，使这些目录看起来不这么混乱呢？其实我们是可以设置这些目录的输出路径的，可以把它们放在一起管理。我们可以将输出目录设计成这样：
+上面的\__cdecl和\__stdcall就是调用约定，其中\__cdecl是C和C++默认的调用约定，所以通常我们的代码都如 【code1】中那样定义，编译器默认会为我们使用\__cdecl调用约定。常见的调用约定有\__cdecl、\__stdcall、fastcall，应用最广泛的是\__cdecl和\__stdcall,下面我们会详细进行讲述。。还有一些不常见的，如 \__pascal、\__thiscall、\__vectorcall。
 
-- Utils
-	- Utils
-	- UsingUtils
-	- Output
-		- Win32
-			- Debug
-				- Bin
-				- Lib
-				- Temp
-			- Release
-				- Bin
-				- Lib
-				- Temp
-		- Linux
-			- Debug
-				- Bin
-				- Lib
-				- Temp
-			- Release
-				- Bin
-				- Lib
-				- Temp
 
-这样看起来是不是结构清晰多了！Output为输出目录，Win32为Windows X32下编译的结构，Linux为Linux平台下的编译结果(这个涉及到跨平台开发，暂时不谈)，Win32下再有Debug和Release等多个不同的释出版本，Bin下放置编译出的最终结果(如.exe等)，Lib下放置编译出的所有.lib文件，Temp放置编译过程的临时文件(如.obj等)。
+##声明和定义处调用约定必须要相同
+在VC++中，调用约定是函数类型的一部分，**因此函数的声明和定义处调用约定要相同，不能只在声明处有调用约定，而定义处没有或与声明不同。**如下：
+【code3】 错误的使用一：
 
-我们还是以Utils为例进行说明。Utils Solution下有两个Project：Utils(编译出Utils工具库)和UsingUtils(使用Utils的库)，仅以释出Debug_Static进行说明，其它的释出方式与此类似。
+	int __stdcall add(int a, int b);
+	int add(int a, int b)
+	{
+		return a + b;
+	}
 
-1. **所有Project使用同一组配制项。**
-什么意思呢？我们在[带你玩转Visual Studio——带你管理多种释出版本](http://blog.csdn.net/luoweifu/article/details/48912241)一文说到Debug和Release就是一组配制项，其实整个Solution有一个配制项，每一个Project也有自己的配制项。
-整个Solution的配制项也就是下图工具栏中你能看到的这些配制项：
-<center>![Solution的配制项](http://img.blog.csdn.net/20151007114313056)
-Solution的配制项</center>
-而每一个Project的配制荐是你右键工程名->Properties能看到的配制项：
-<center>![Project的配制项](http://img.blog.csdn.net/20151007114200856)
-Project的配制项</center>
-一般一个Solution下的所有的Project最好使用同组配制项，这样不容易混乱。
+报错：
+>error C2373: 'add': redefinition; different type modifiers
+>error C2440: 'initializing': cannot convert from 'int (__stdcall *)(int,int)' to 'int'
 
-2. **给UsingUtils添加Debug_Static配制项。**我们设置Utils的属性时已经配制了Debug_Static的配制项，并设置了Solution的Debug_Static配制项，再给UsingUtils添加Debug_Static的配制项。
-<center>![添加配制项](http://img.blog.csdn.net/20151007121337915)
-添加配制项</center>
-标“4”的Create new solution configurations表示为整个Solution也添加(Debug_Static)配制项，这个复选框得取消勾选，因为设置Utils时已经为Solution默认添加了Debug_Static配制项，不然会添加不上。
 
-3. **设置Utils的输出路径**，右键Utils工程->Properties进行如下配制。
-<center>![设置输出路径](http://img.blog.csdn.net/20151007122645601)
-设置输出路径</center>
+【code4】 错误的使用二：
 
-4. **拷贝导出库.lib**，我们可以将Utils编译出的静态库拷贝Utils.lib到Lib目录下，这样我们就可以直接把这个文件提供到调用方使用。
-<center>![这里写图片描述](http://img.blog.csdn.net/20151007122947475)
-</center>
-Build Events中可以设置编译前、链接前、编译后要进行的处理事件。这里我们目地是编译后将编译出的Utils.lib拷贝到Lib文件夹下，所以我们在Post-Build Event输入以下命令
-```
-:如果Lib目录不存在，侧创建这个目录
-if not exist $(SolutionDir)Output\Win32\$(Configuration)\Lib md $(SolutionDir)Output\Win32\$(Configuration)\Lib
-:将(ProjectName).lib文件拷贝到Lib目录下
-copy /y $(SolutionDir)Output\Win32\$(Configuration)\Bin\$(ProjectName).lib $(SolutionDir)Output\Win32\$(Configuration)\Lib\
-```
+	int  add(int a, int b);
+	int __stdcall add(int a, int b)
+	{
+		return a + b;
+	}
 
-5. **设置UsingUtils的输出路径**，与Utils类似如下：
-<center>![设置UsingUtils的输出路径]
-(http://img.blog.csdn.net/20151007123802554)
-设置UsingUtils的输出路径</center>
+报错：
+>error C2373: 'add': redefinition; different type modifiers
+error C2440: 'initializing': cannot convert from 'int (__cdecl *)(int,int)' to 'int'
 
-6. **设置完成**，Ok，编译一下再来看看输出结果目录，是不是清晰多了！
-![新的输出结果目录](http://img.blog.csdn.net/20151007124115753)
-新的输出结果目录
-***
-***
+【code5】 错误的使用三：
+
+	int __stdcall add(int a, int b);
+	int __cdecl add(int a, int b)
+	{
+		return a + b;
+	}
+
+报错：
+>error C2373: 'add': redefinition; different type modifiers
+error C2440: 'initializing': cannot convert from 'int (__stdcall *)(int,int)' to 'int'
+
+【code6】 正确的用法：
+
+	int __stdcall add(int a, int b);
+	int __stdcall add(int a, int b)
+	{
+		return a + b;
+	}
+
+##函数的调用过程
+要深入理解函数调用约定，你须要了解函数的调用过程和调用细节。
+假设函数A调用函数B，我们称A函数为"调用者",B函数为“被调用者”。如下面的代码，ShowResult为调用者，add为被调用者。
+
+	int add(int a, int b)
+	{
+		return a + b;
+	}
+	
+	void ShowResult()
+	{
+		std::cout << add(5, 10) << std::endl;
+	}
+
+函数调用过程可以这么描述：
+（1）先将调用者（A）的堆栈的基址（ebp）入栈，以保存之前任务的信息。
+（2）然后将调用者（A）的栈顶指针（esp）的值赋给ebp，作为新的基址（即被调用者B的栈底）。
+（3）然后在这个基址（被调用者B的栈底）上开辟（一般用sub指令）相应的空间用作被调用者B的栈空间。
+（4）函数B返回后，从当前栈帧的ebp即恢复为调用者A的栈顶（esp），使栈顶恢复函数B被调用前的位置；然后调用者A再从恢复后的栈顶可弹出之前的ebp值（可以这么做是因为这个值在函数调用前一步被压入堆栈）。这样，ebp和esp就都恢复了调用函数B前的位置，也就是栈恢复函数B调用前的状态。
+这个过程在AT&T汇编中通过两条指令完成，即：
+![](http://sunlogging.com/wp-content/uploads/2016/09/function.jpg)
+
+       leave
+       ret
+      这两条指令更直白点就相当于：
+      mov   %ebp , %esp
+      pop    %ebp
+
+此部分内容参考：[http://blog.csdn.net/zsy2020314/article/details/9429707](http://blog.csdn.net/zsy2020314/article/details/9429707)
+
+#__cdecl的特点
+__cdecl 是 C Declaration  的缩写，表示 C 和 C++ 默认的函数调用约定。是C/C++和MFCX的默认调用约定。
+
+- 按从右至左的顺序压参数入栈、。
+- 由调用者把参数弹出栈。切记：对于传送参数的内存栈是由调用者来维护的，返回值在EAX中。因此对于像printf这样可变参数的函数必须用这种约定。
+- 编译器在编译的时候对这种调用规则的函数生成修饰名的时候，在输出函数名前加上一个下划线前缀，格式为_function。如函数int add(int a, int b)的修饰名是_add。
+
+
+(1).为了验证参数是从右至左的顺序压栈的，我们可以看下面这段代码，Debug进行单步调试,可以看到我们的调用栈会先进入GetC()，再进入GetB()，最后进入GetA()。
+![](http://sunlogging.com/wp-content/uploads/2016/09/cdecl.jpg)
+
+(2).第二点“调用者把参数弹出栈”，这是编译器的工作，暂时没办法验证。要深入了解这部分，需要学习汇编语言相关的知识。
+
+(3).函数的修饰名，这个可以通过对编译出的dll使用VS的"dumpbin /exports *ProjectName*.dll"命令进行查看(后面章节会进行详细介绍)，或直接打开.obj文件查找对应的方法名(如搜索add)。
+
+从代码和程序调试的层面考虑，参数的压栈顺序和栈的清理我们都不用太观注，因为这是编译器的决定的，我们改变不了。但第三点却常常困扰我们，因为如果不弄清楚这点，在多个库之间(如dll、lib、exe)相互调用、依赖时常常出出现莫名其妙的错误。这个我在后面章节会进行详细介绍。
+
+
+#__stdcall的特点
+\_\_stdcall是Standard Call的缩写，是C++的标准调用方式,当然这是微软定义的标准，\_\_stdcall通常用于Win32 API中(可查看WINAPI的定义)。
+
+- 按从右至左的顺序压参数入栈。
+- 由被调用者把参数弹出栈。切记：函数自己在退出时清空堆栈，返回值在EAX中。
+- \_\_stdcall调用约定在输出函数名前加上一个下划线前缀，后面加上一个“@”符号和其参数的字节数，格式为\_function@number。如函数int sub(int a, int b)的修饰名是_sub@8。
+
+#__fastcall的特点
+\_\_fastcall调用的主要特点就是快，因为它是通过寄存器来传送参数的。
+
+- 实际上\_\_fastcall用ECX和EDX传送前两个DWORD或更小的参数，剩下的参数仍自右向左压栈传送，被调用的函数在返回前清理传送参数的内存栈。
+- \_\_fastcall调用约定在输出函数名前加上一个“@”符号，后面也是一个“@”符号和其参数的字节数，格式为@function@number,如double  multi(double a, double b)的修饰名是@multi@16。
+- \_\_fastcall和\_\_stdcall很象，唯一差别就是头两个参数通过寄存器传送。注意通过寄存器传送的两个参数是从左向右的，即第1个参数进ECX，第2个进EDX，其他参数是从右向左的入栈，返回仍然通过EAX。
+
+以上内容参考：[http://www.3scard.com/index.php?m=blog&f=view&id=10](http://www.3scard.com/index.php?m=blog&f=view&id=10)
+
+#__thiscall
+\__thiscall是C++类成员函数缺省的调用约定，但它没有显示的声明形式。因为在C++类中，成员函数调用还有一个this指针参数，因此必须特殊处理，thiscall调用约定的特点：
+
+- 参数入栈：参数从右向左入栈
+- this指针入栈：如果参数个数确定，this指针通过ecx传递给被调用者；如果参数个数不确定，this指针在所有参数压栈后被压入栈。
+- 栈恢复：对参数个数不定的，调用者清理栈，否则函数自己清理栈。
+
+
+#总结
+这里主要总结一下_cdecl、_stdcall、__fastcall三者之间的区别：
+|要点|\__cdecl|\__stdcall|\__fastcall|
+|---|---|---|---|
+|参数传递方式|右->左 |右->左 |左边开始的两个不大于4字节（DWORD）的参数分别放在ECX和EDX寄存器，其余的参数自右向左压栈传送|
+|清理栈方|调用者清理|被调用函数清理|被调用函数清理|
+|适用场合|C/C++、MFC的默认方式; 可变参数的时候使用;|Win API|要求速度快|
+|C编译修饰约定|_functionname|_functionname@number|@functionname@number|
+
 
 上一篇回顾： 
-[带你玩转Visual Studio——带你管理多种释出版本](http://blog.csdn.net/luoweifu/article/details/48912241)
+[带你玩转Visual Studio——绑定进程调试](http://blog.csdn.net/luoweifu/article/details/51570947)
 
 下一篇要讲述的内容： 
-带你玩转Visual Studio——带你多工程开发
+带你玩转Visual Studio——调用约定与(动态)库
 ***
+- 
