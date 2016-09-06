@@ -1,7 +1,7 @@
 #include "Stdcall.h"
 #include <iostream>
 
-EAPI int sub(int a, int b)
+EAPI int __stdcall sub(int a, int b)
 {
 	return a - b;
 }

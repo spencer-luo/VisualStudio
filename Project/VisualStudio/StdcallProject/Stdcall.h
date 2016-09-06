@@ -10,11 +10,11 @@
 #ifdef STATIC_LIBRARY
 #define EAPI// int
 #else
-#define EAPI/* extern "C" */_API_
+#define EAPI /*extern "C" */_API_
 #endif //STATIC_LIBRARY
 
 
-EAPI int sub(int a, int b);
+EAPI int __stdcall sub(int a, int b);
 
 EAPI void func();
 

@@ -87,18 +87,18 @@ ordinal hint RVA      name
 - 参数表后以“@Z”标识整个名字的结束，如果该函数无参数，则以“Z”标识结束。
 
 ### 参数表代号说明
->X--void ， 
-D--char， 
-E--unsigned char， 
-F--short， 
-H--int， 
-I--unsigned int， 
-J--long， 
-K--unsigned long， 
-M--float， 
-N--double， 
-_N--bool，
-PA--指针， 
+	X--void ， 
+	D--char， 
+	E--unsigned char， 
+	F--short， 
+	H--int， 
+	I--unsigned int， 
+	J--long， 
+	K--unsigned long， 
+	M--float， 
+	N--double， 
+	_N--bool，
+	PA--指针， 
 .... 
 
 **说明：**
@@ -170,11 +170,135 @@ ordinal hint RVA      name
 ```
 
 # 编译动态库
+## 编译并使用动态库
+
+要使编译出的动态库更有通过性，我们一般会用C的方式来进行进行编译，即使用
+ 
+	extern "C" __declspec(dllexport)
+
+进行导出接口的声明。
+
+
+我们使用C的编译方式来编译这三个工程，得到CdeclProject.dll、StdcallProject.dll、FastcallProject.dll三个动态库，现在我们可以在VisualStudio工程(这是生成目标为.exe的工程)中使用他们：
+```Cpp
+#include "Cdecl.h"
+#include "Stdcall.h"
+#include "FastCall.h"
+
+int main()
+{
+	int r1 = add(10, 5);
+	int r2 = sub(10, 5);
+	double r3 = multi(10.0, 5.0);
+	return 0;
+}
+
+```
+
+编译VisualStudio，会发现报以下两个错误：
+>error LNK2019: unresolved external symbol __imp__sub referenced in function _main
+>error LNK2019: unresolved external symbol __imp__multi referenced in function _main
+
+这是因为VisualStudio工程默认是使用__cdecl约定，使用到sub和multi的时候,会去找_sub(或sub)、_multi(或multi)的函数名。但sub是__stdcall约定，编译出的StdcallProject.dll中的名称是_sub@8；而multi是__fastcall约定，编译出的FastcallProject.dll中名称是@multi@16。所以自然就找不到。
+
+同理，我们将VisualStudio工程的默认调用约定改成__stdcall，再进行编译，会报以下两个错误：
+>error LNK2019: unresolved external symbol __imp__add@8 referenced in function _main
+>error LNK2019: unresolved external symbol __imp__multi@16 referenced in function _main
+
+把VisualStudio工程的默认调用约定改成__fastcall，再进行编译，会报以下两个错误：
+>error LNK2019: unresolved external symbol __imp_@add@8 referenced in function _main
+>error LNK2019: unresolved external symbol __imp_@sub@8 referenced in function _main
+
+相信你一定明白怎么回事了，我就不再解释了。由此可见
+
+
+**【要点一】：如果一个解决方案中有多个工程,或一个工程中使用了多个开源库，所有工程最好使用同一种默认调用约定。**
+
+## 显示使用调用约定
+如果我要使编译出的dll在不同的调用约定下都能正常使用，可以这样实现：
+
+**【要点二】：要使编译出的动态库在不同的调用约定下都能使用，需要对所有要导出的函数使用显示的调用约定**
+
+```
+EAPI int __cdecl add(int a, int b);
+
+int __cdecl add(int a, int b)
+{
+	return a + b;
+}
+```
+
+```Cpp
+EAPI int __stdcall sub(int a, int b);
+
+EAPI int __stdcall sub(int a, int b)
+{
+	return a - b;
+}
+```
+
+```Cpp
+EAPI double __fastcall multi(double a, double b);
+
+double __fastcall multi(double a, double b)
+{
+	return a * b;
+}
+```
+
+这时，VisualStudio工程的默认调用约定不管是用__cdecl、__stdcall还是__fastcall，都能正常编译和运行。
+
+
+## 使用导出模块文件
+上面显示使用调用约定的方式虽然可以使编译出的dll在任何调用约定下都能被使用，但仅限于在相同的编译器下。
+
+我们用”dumpbin /exports ProjectName.dll”命令查看这三个dll的导出接口：
+
+	add = @ILT+215(_add)
+	_sub@8 = @ILT+225(_sub@8)
+	@multi@16 = @ILT+335(@multi@16)
+
+你会发现这和我们第一次查看的结果一样，但你仔细看一下第一条结果和后面两个有点不样。第一条结果左边(add)和右边名称不一样(_add),后面两条结果左边和右边名称都相同。这是因为:
+
+>通过关键字extern "C" __declspec(dllexport)声明的接口函数可以保证__cdecl调用约定的函数名称不被改变(不被编译器添加特殊的符号进行修饰)，却不能保证__stdcall和__fastcall调用约定的函数不被改变。
+
+要命__stdcall和__fastcall调用约定的函数不被改变，我们需要使用模块文件。为CdeclProject、FastcallProject和StdcallProject三个工程添加模块文件，右键工程 -> Add -> New Item -> Visual C++ -> Code -> Module-Definition File(.def)
+
+```
+LIBRARY     "CdeclProject"	;Library name
+EXPORTS
+add @ 1 ;Export the add function
+```
+
+```
+LIBRARY     "StdcallProject"	;Library name
+EXPORTS
+sub @ 1 ;Export the sub function
+```
+
+```
+LIBRARY     "FastcallProject"	;Library name
+EXPORTS
+multi @ 1 ;Export the multi function
+```
+
+对这三个工程进行编译，再用”dumpbin /exports ProjectName.dll”命令查看导出接口如下：
+
+	add = @ILT+290(_add)
+	sub = @ILT+590(_sub@8)
+	multi = @ILT+435(@multi@16)
+
+你会看到这三个名称的函数都没被更改了，这时编译出来的dll才具有跨平台、跨编译器的通用性。
+
+**【要点三】:要使编译出的动态库具有跨平台、跨编译器的通用性，需要使用模块文件定义导出接口(__cdecl调用约定除外)。**
+
+
 
 上一篇回顾： 
-[带你玩转Visual Studio——绑定进程调试](http://blog.csdn.net/luoweifu/article/details/51570947)
+[带你玩转Visual Studio——调用约定__cdecl、__stdcall和__fastcall](http://blog.csdn.net/luoweifu/article/details/52425733)
 
 下一篇要讲述的内容： 
-带你玩转Visual Studio——调用约定与(动态)库
+带你玩转Visual Studio2——Git与Github的使用
 
+***
 ***

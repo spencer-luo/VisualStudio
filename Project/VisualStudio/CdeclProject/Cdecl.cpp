@@ -1,7 +1,7 @@
 #include "Cdecl.h"
 #include <iostream>
 
-int add(int a, int b)
+int __cdecl add(int a, int b)
 {
 	return a + b;
 }

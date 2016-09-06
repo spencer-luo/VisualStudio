@@ -1,0 +1,3 @@
+LIBRARY     "FastcallProject"	;Library name
+EXPORTS
+multi @ 1 ;Export the multi function

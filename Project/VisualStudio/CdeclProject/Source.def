@@ -1,0 +1,3 @@
+LIBRARY     "CdeclProject"	;Library name
+EXPORTS
+add @ 1 ;Export the add function

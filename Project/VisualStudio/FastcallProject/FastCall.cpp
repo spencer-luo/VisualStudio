@@ -1,7 +1,7 @@
 #include "FastCall.h"
 #include <iostream>
 
-double  multi(double a, double b)
+double __fastcall multi(double a, double b)
 {
 	return a * b;
 }

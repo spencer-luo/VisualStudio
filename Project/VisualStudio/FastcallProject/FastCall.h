@@ -13,7 +13,7 @@
 #endif //STATIC_LIBRARY
 
 
-EAPI double multi(double a, double b);
+EAPI double __fastcall multi(double a, double b);
 
 EAPI void func();
 

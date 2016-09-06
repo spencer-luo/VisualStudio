@@ -1,0 +1,3 @@
+LIBRARY     "StdcallProject"	;Library name
+EXPORTS
+sub @ 1 ;Export the sub function
